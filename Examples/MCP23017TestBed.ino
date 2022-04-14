@@ -1,11 +1,13 @@
 /* 
  *  MCP23017Encoders Example
- *  
+ *  djrm, modified April 14th 2022 to enable use of latest Adafruit libraries and custom encoder board hardware
  */
 
 
 #include <Wire.h>
-//#include <Adafruit_MCP23017.h>   //the MCO23017Encoders library includes this but it must be installed (adafruit MCP23017 library)
+// Adafruit_BusIO is needed by latest Adafruit_MCP23017 library (v2.1.0), both are needed by the MCP23017Encoders library
+// Note: small syntax changes needed since original MCP23017Encoders library release
+// Note: I2C address now passed to MPC23017.begin function, needed if alternative hardware used.
 #include <MCP23017Encoders.h>
 
 MCP23017Encoders myMCP23017Encoders(3);         // Parameter is arduino interrupt pin that the MCP23017 is connected to
@@ -15,9 +17,10 @@ void setup()
 {
 
   Serial.begin(115200); 
-  myMCP23017Encoders.begin();
+  Serial.println("MPC23017 TestBed");
+  myMCP23017Encoders.begin(0x27);
   
-  myMCP23017Encoders.setAccel(0, 100);
+  myMCP23017Encoders.setAccel(0, 100.0);
 
 }
 
@@ -27,7 +30,7 @@ void loop()
 
   delay(1000);
 
-  for (int i = 0; i < 8; i++)
+  for (int i = 0; i < MCP_ENCODERS; i++)
   {
     Serial.print(myMCP23017Encoders.read(i)); Serial.print(" "); 
   }

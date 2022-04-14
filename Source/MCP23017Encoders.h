@@ -17,18 +17,21 @@
 
      Initial version released January 23 2021
      
+ *  djrm, modified April 14th 2022 to enable use of latest Adafruit libraries and custom encoder board hardware
 */
 
 
 #ifndef MCP23017Encoders_h
 #define MCP23017Encoders_h
 
-#include "Adafruit_MCP23017.h"
+#include "Adafruit_MCP23X17.h"
+
+#define CUSTOM_4X_ENCODER_BOARD
 
 // Register bits
 #define MCP_INT_MIRROR true  // Mirror inta to intb.
 #define MCP_INT_ODR    false // Open drain.
-#define MCP_ENCODERS 8          // how many encoders are attached to the MCP23017
+#define MCP_ENCODERS 4          // how many encoders are attached to the MCP23017
 
 class MCP23017Encoders
 {
@@ -36,7 +39,7 @@ class MCP23017Encoders
 
     MCP23017Encoders(int intPin);               // Constructor, intPin is the arduino interrupt pin that the MCP23017 is attached to
 
-    void begin(void);                           // Sets up the MCP23017 chip
+    void begin(uint8_t i2c_addr);                           // Sets up the MCP23017 chip
     int  read(int encoder);                     // Return current value of encoder (0-7)
     void write(int encoder, int value);         // write encoder with value  (int encoder, int value)
     void setAccel(int encoder, float value);    // set acceleration factor (currently under construction)

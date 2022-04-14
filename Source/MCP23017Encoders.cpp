@@ -12,15 +12,16 @@
      www.patreon.com/curiosityworkshop
      www.github.com/curiosity-workshop
 
+ *  djrm, modified April 14th 2022 to enable use of latest Adafruit libraries and custom encoder board hardware
 */
 
 //#include "WProgram.h"
 
-#include <arduino.h>
+#include <Arduino.h>
 #include "MCP23017Encoders.h"
 
 int                 _MCP23017intPin;
-Adafruit_MCP23017   _mcp;
+Adafruit_MCP23X17   _mcp;
 
 volatile struct mcpEncoder
 {
@@ -39,20 +40,18 @@ MCP23017Encoders::MCP23017Encoders(int intPin)
 
 }
 
-void MCP23017Encoders::begin()
+void MCP23017Encoders::begin(uint8_t i2c_addr)
 {
     int i;
 
-    _mcp.begin();      // use default address 0
+    _mcp.begin_I2C(i2c_addr);      // use default address 0
 
     pinMode(_MCP23017intPin, INPUT);
 
     _mcp.setupInterrupts(MCP_INT_MIRROR, MCP_INT_ODR, LOW); // The mcp output interrupt pin.
     for (i = 0; i < 16; i++)
     {
-        _mcp.pinMode(i, INPUT);
-        _mcp.pullUp(i, HIGH);
-       
+        _mcp.pinMode(i, INPUT_PULLUP);
         _mcp.setupInterruptPin(i, CHANGE);
       
     }
@@ -61,9 +60,9 @@ void MCP23017Encoders::begin()
 
     attachInterrupt(digitalPinToInterrupt(_MCP23017intPin), MCP23017EncoderISR, FALLING);
 
-    for (i = 0; i < 8; i++)
+    for (i = 0; i < MCP_ENCODERS; i++)
     {
-        mcpEncoders[i].accel = 1;
+        mcpEncoders[i].accel = 1.0;
         mcpEncoders[i].msSinceLastRead = millis();
     }
 
@@ -81,7 +80,6 @@ int MCP23017Encoders::read(int encoder)
     
     if (w > 11) mcpEncoders[encoder].currentValue += mcpEncoders[encoder].tickValue * mcpEncoders[encoder].accel;
     else  mcpEncoders[encoder].currentValue += mcpEncoders[encoder].tickValue;
-
     mcpEncoders[encoder].tickValue = 0;
     mcpEncoders[encoder].msSinceLastRead = millis();
 
@@ -118,9 +116,108 @@ static void MCP23017EncoderISR(void)
     p = _mcp.getLastInterruptPin();
 
     v = _mcp.readGPIOAB();
+    
 
     switch (p)
     {
+#ifdef CUSTOM_4X_ENCODER_BOARD
+    case 5:  case 6:
+        v = (v & 0x0060) >> 3;
+        v = v | mcpEncoders[0].previousBitMask;
+        mcpEncoders[0].previousBitMask = v >> 2;
+
+        switch (v)
+        {
+        case 0: case 5: case 10: case 15:
+            break;
+
+        case 1: case 7: case 8: case 14:
+            mcpEncoders[0].tickValue++;
+            break;
+
+        case 2: case 4: case 11: case 13:
+            mcpEncoders[0].tickValue--;
+            break;
+            
+        default:
+            break;            
+        }
+        break;
+
+    case 2:  case 3:
+        v = (v & 0x000C);
+        v = v | mcpEncoders[1].previousBitMask;
+        mcpEncoders[1].previousBitMask = v >> 2;
+
+        switch (v)
+        {
+        case 0: case 5: case 10: case 15:
+            break;
+
+        case 1: case 7: case 8: case 14:
+            mcpEncoders[1].tickValue++;
+            break;
+
+        case 2: case 4: case 11: case 13:
+            mcpEncoders[1].tickValue--;
+            break;
+                     
+        default:
+            break;            
+        }
+        break;
+
+    case 9:   case 10:
+
+        v = (v & 0x0600) >> 7;
+        v = v | mcpEncoders[2].previousBitMask;
+        mcpEncoders[2].previousBitMask = v >> 2;
+
+        switch (v)
+        {
+        case 0: case 5: case 10: case 15:
+            break;
+
+        case 1: case 7: case 8: case 14:
+            mcpEncoders[2].tickValue--;
+            break;
+
+        case 2: case 4: case 11: case 13:
+            mcpEncoders[2].tickValue++;
+            break;
+                       
+        default:
+            break;            
+        }
+        break;
+
+    case 12:   case 13:
+        v = (v & 0x3000) >> 10;
+        v = v | mcpEncoders[3].previousBitMask;
+        mcpEncoders[3].previousBitMask = v >> 2;
+
+        switch (v)
+        {
+        case 0: case 5: case 10: case 15:
+            break;
+
+        case 1: case 7: case 8: case 14:
+            mcpEncoders[3].tickValue--;
+            break;
+
+        case 2: case 4: case 11: case 13:
+            mcpEncoders[3].tickValue++;
+            break;
+            
+        default:
+            break;            
+        }
+        break;
+
+   default:
+      break;
+      
+#else
 
     case 0:  case 1:
         v = (v & 0x0003) << 2;
@@ -307,6 +404,7 @@ static void MCP23017EncoderISR(void)
         }
 
         break;
+#endif
     }
 
  
