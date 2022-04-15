@@ -17,7 +17,6 @@
 
      Initial version released January 23 2021
      
- *  djrm, modified April 14th 2022 to enable use of latest Adafruit libraries and custom encoder board hardware
 */
 
 
@@ -43,6 +42,9 @@ class MCP23017Encoders
     int  read(int encoder);                     // Return current value of encoder (0-7)
     void write(int encoder, int value);         // write encoder with value  (int encoder, int value)
     void setAccel(int encoder, float value);    // set acceleration factor (currently under construction)
+    int  button_read(int encoder);              // Return state of button (0-7)
+    int  button_change(int encoder);              // Return state of button (0-7)
+    int  button_clear(int encoder);             // Clear button pressed latch, button (0-7)
   private:
     
    

@@ -12,7 +12,6 @@
      www.patreon.com/curiosityworkshop
      www.github.com/curiosity-workshop
 
- *  djrm, modified April 14th 2022 to enable use of latest Adafruit libraries and custom encoder board hardware
 */
 
 //#include "WProgram.h"
@@ -30,6 +29,8 @@ volatile struct mcpEncoder
     unsigned long msSinceLastRead;
     int currentValue;
     float accel;                        // accelerator value 
+    int button_value;
+    int button_change;
 } mcpEncoders[MCP_ENCODERS];
 
 MCP23017Encoders::MCP23017Encoders(int intPin)
@@ -53,6 +54,7 @@ void MCP23017Encoders::begin(uint8_t i2c_addr)
     {
         _mcp.pinMode(i, INPUT_PULLUP);
         _mcp.setupInterruptPin(i, CHANGE);
+        button_clear(i);
       
     }
 
@@ -76,10 +78,31 @@ int MCP23017Encoders::read(int encoder)
 
     if (encoder < 0 || encoder >= MCP_ENCODERS) return 0;
    
-    w = abs(mcpEncoders[encoder].tickValue) / (millis() - mcpEncoders[encoder].msSinceLastRead) ;
-    
-    if (w > 11) mcpEncoders[encoder].currentValue += mcpEncoders[encoder].tickValue * mcpEncoders[encoder].accel;
-    else  mcpEncoders[encoder].currentValue += mcpEncoders[encoder].tickValue;
+    w = (200*abs(mcpEncoders[encoder].tickValue)) / (millis() - mcpEncoders[encoder].msSinceLastRead) ;
+/*    
+    Serial.print(" t="); 
+    Serial.print((millis() - mcpEncoders[encoder].msSinceLastRead)); 
+    Serial.print(", "); 
+
+    Serial.print(" w="); 
+    Serial.print(w); 
+    Serial.print(", "); 
+*/    
+    if (w > 11.0) 
+    {
+    /*
+       Serial.print(" w="); 
+       Serial.print(mcpEncoders[encoder].msSinceLastRead); 
+       Serial.print(", "); 
+       
+       Serial.print("Acc, "); 
+     */
+       mcpEncoders[encoder].currentValue += mcpEncoders[encoder].tickValue * mcpEncoders[encoder].accel;
+    }
+    else  
+    {
+       mcpEncoders[encoder].currentValue += mcpEncoders[encoder].tickValue;
+    }
     mcpEncoders[encoder].tickValue = 0;
     mcpEncoders[encoder].msSinceLastRead = millis();
 
@@ -98,6 +121,23 @@ void MCP23017Encoders::setAccel(int encoder, float value)
 {
     mcpEncoders[encoder].accel = value;
 }
+
+int MCP23017Encoders::button_read(int button)
+{
+   return mcpEncoders[button].button_value;
+}
+
+int MCP23017Encoders::button_change(int button)
+{
+   return mcpEncoders[button].button_change;
+}
+
+int MCP23017Encoders::button_clear(int button)
+{
+   mcpEncoders[button].button_change = 0;
+}
+
+
 /*
   Interrupt service
 */
@@ -121,6 +161,28 @@ static void MCP23017EncoderISR(void)
     switch (p)
     {
 #ifdef CUSTOM_4X_ENCODER_BOARD
+
+   case 7:
+      mcpEncoders[0].button_change = 1;
+      mcpEncoders[0].button_value = v & 0x0080 ? 0:1;
+      break;
+
+   case 4:
+      mcpEncoders[1].button_change = 2;
+      mcpEncoders[1].button_value = v & 0x0010 ? 0:2;
+      break;
+
+   case 8:
+      mcpEncoders[2].button_change = 4;
+      mcpEncoders[2].button_value = v & 0x0100 ? 0:4;
+      break;
+
+   case 11:
+      mcpEncoders[3].button_change = 8;
+      mcpEncoders[3].button_value = v & 0x0800 ? 0:8;
+      break;
+
+
     case 5:  case 6:
         v = (v & 0x0060) >> 3;
         v = v | mcpEncoders[0].previousBitMask;

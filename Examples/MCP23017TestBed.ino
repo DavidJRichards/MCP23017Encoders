@@ -20,7 +20,10 @@ void setup()
   Serial.println("MPC23017 TestBed");
   myMCP23017Encoders.begin(0x27);
   
-  myMCP23017Encoders.setAccel(0, 100.0);
+  myMCP23017Encoders.setAccel(0, 10.0);
+  myMCP23017Encoders.setAccel(1, 10.0);
+  myMCP23017Encoders.setAccel(2, 10.0);
+  myMCP23017Encoders.setAccel(3, 10.0);
 
 }
 
@@ -28,12 +31,25 @@ void setup()
 void loop()
 {
 
-  delay(1000);
+  delay(100);
 
   for (int i = 0; i < MCP_ENCODERS; i++)
   {
-    Serial.print(myMCP23017Encoders.read(i)); Serial.print(" "); 
+    Serial.print(myMCP23017Encoders.read(i)); Serial.print(" ,"); 
   }
+
+  for (int i = 0; i < MCP_ENCODERS; i++)
+  {
+    Serial.print("button=");
+    Serial.print(myMCP23017Encoders.button_read(i)); Serial.print(" "); 
+    Serial.print("change=");
+    Serial.print(myMCP23017Encoders.button_change(i)); Serial.print(" "); 
+    myMCP23017Encoders.button_clear(i);
+  }
+
+
+
+  
   Serial.println();
 
 
